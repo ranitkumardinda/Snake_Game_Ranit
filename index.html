@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Snake Game</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #141e30, #243b55);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-size: 2em;
+    }
+
+    canvas {
+      border: 2px solid #0ff;
+      background: #111;
+      margin: 20px 0;
+    }
+
+    #scoreBoard {
+      display: flex;
+      justify-content: space-around;
+      width: 300px;
+      font-size: 1.2em;
+    }
+
+    .controls {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 5px;
+    }
+
+    .btn {
+      background: #0ff3;
+      border: 2px solid #0ff;
+      color: #fff;
+      font-size: 1.2em;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: #0ff8;
+    }
+
+    .speed-control {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 1em;
+    }
+
+    .speed-btn {
+      padding: 5px 15px;
+      font-size: 1.5em;
+      border-radius: 10px;
+      background: #0ff3;
+      border: 2px solid #0ff;
+      color: white;
+      cursor: pointer;
+    }
+
+    .speed-btn:hover {
+      background: #0ff9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Smart Snake Game</h1>
+  <div id="scoreBoard">
+    <div>Score: <span id="score">0</span></div>
+    <div>High Score: <span id="highScore">0</span></div>
+  </div>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+  <div class="controls">
+    <div></div>
+    <button class="btn" onclick="changeDirection('up')">⬆️</button>
+    <div></div>
+    <button class="btn" onclick="changeDirection('left')">⬅️</button>
+    <div></div>
+    <button class="btn" onclick="changeDirection('right')">➡️</button>
+    <div></div>
+    <button class="btn" onclick="changeDirection('down')">⬇️</button>
+    <div></div>
+  </div>
+
+  <div class="speed-control">
+    <button class="speed-btn" onclick="adjustSpeed(-1)">➖</button>
+    <span>Speed: <span id="speedLevel">5</span></span>
+    <button class="speed-btn" onclick="adjustSpeed(1)">➕</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const box = 20;
+    const canvasSize = canvas.width;
+    let speed = 5;
+    let direction = "right";
+    let snake = [{ x: 160, y: 200 }];
+    let food = randomFood();
+    let score = 0;
+    let highScore = localStorage.getItem("highScore") || 0;
+    document.getElementById("highScore").innerText = highScore;
+
+    function randomFood() {
+      return {
+        x: Math.floor(Math.random() * (canvasSize / box)) * box,
+        y: Math.floor(Math.random() * (canvasSize / box)) * box,
+      };
+    }
+
+    function draw() {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+      // Draw Snake
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "#0ff" : "#0ff8";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+      }
+
+      // Draw Food
+      ctx.fillStyle = "lime";
+      ctx.fillRect(food.x, food.y, box, box);
+
+      // Move Snake
+      let head = { ...snake[0] };
+      if (direction === "left") head.x -= box;
+      if (direction === "right") head.x += box;
+      if (direction === "up") head.y -= box;
+      if (direction === "down") head.y += box;
+
+      // Infinite wrap
+      if (head.x >= canvasSize) head.x = 0;
+      if (head.x < 0) head.x = canvasSize - box;
+      if (head.y >= canvasSize) head.y = 0;
+      if (head.y < 0) head.y = canvasSize - box;
+
+      // Self-collision
+      for (let i = 0; i < snake.length; i++) {
+        if (head.x === snake[i].x && head.y === snake[i].y) {
+          clearInterval(game);
+          alert("Game Over!");
+          snake = [{ x: 160, y: 200 }];
+          direction = "right";
+          score = 0;
+          document.getElementById("score").innerText = score;
+          game = setInterval(draw, 200 - speed * 15);
+          return;
+        }
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        document.getElementById("score").innerText = score;
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem("highScore", highScore);
+          document.getElementById("highScore").innerText = highScore;
+        }
+        food = randomFood();
+      } else {
+        snake.pop();
+      }
+    }
+
+    function changeDirection(dir) {
+      if (dir === "left" && direction !== "right") direction = "left";
+      else if (dir === "right" && direction !== "left") direction = "right";
+      else if (dir === "up" && direction !== "down") direction = "up";
+      else if (dir === "down" && direction !== "up") direction = "down";
+    }
+
+    function adjustSpeed(val) {
+      speed = Math.min(10, Math.max(1, speed + val));
+      document.getElementById("speedLevel").innerText = speed;
+      clearInterval(game);
+      game = setInterval(draw, 200 - speed * 15);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") changeDirection("left");
+      if (e.key === "ArrowRight") changeDirection("right");
+      if (e.key === "ArrowUp") changeDirection("up");
+      if (e.key === "ArrowDown") changeDirection("down");
+    });
+
+    let game = setInterval(draw, 200 - speed * 15);
+  </script>
+</body>
+</html>
