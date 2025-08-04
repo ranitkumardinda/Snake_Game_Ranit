@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake Game - Infinite</title>
+  <style>
+    * { box-sizing: border-box; padding: 0; margin: 0; }
+    body {
+      background: #121212;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #fff;
+    }
+    h1 { margin: 20px 0; }
+    canvas {
+      background: #000;
+      border: 2px solid #fff;
+      image-rendering: pixelated;
+    }
+    .score-panel {
+      margin: 10px;
+      font-size: 1.2rem;
+    }
+    .buttons, .speed-control {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover { background: #555; }
+    .control-grid {
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .control-grid button {
+      font-size: 24px;
+    }
+    .invisible { visibility: hidden; }
+  </style>
+</head>
+<body>
+  <h1>🐍 Snake Game</h1>
+  <div class="score-panel">
+    Score: <span id="score">0</span> | Highscore: <span id="highscore">0</span> | Speed: <span id="speedLevel">5</span>
+  </div>
+  <canvas id="game" width="400" height="333"></canvas>
+
+  <div class="speed-control">
+    <button onclick="changeSpeed(-1)">➖ Slower</button>
+    <button onclick="changeSpeed(1)">➕ Faster</button>
+  </div>
+
+  <div class="control-grid">
+    <div class="invisible"></div>
+    <button onclick="setDirection('UP')">⬆️</button>
+    <div class="invisible"></div>
+    <button onclick="setDirection('LEFT')">⬅️</button>
+    <div class="invisible"></div>
+    <button onclick="setDirection('RIGHT')">➡️</button>
+    <div class="invisible"></div>
+    <button onclick="setDirection('DOWN')">⬇️</button>
+    <div class="invisible"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const box = 20;
+    const canvasSize = 400;
+    let snake = [{ x: 200, y: 200 }];
+    let food = { x: randomCoord(), y: randomCoord() };
+    let direction = "RIGHT";
+    let score = 0;
+    let highscore = localStorage.getItem("snakeHighscore") || 0;
+    let speed = 5;
+    document.getElementById("highscore").textContent = highscore;
+
+    function randomCoord() {
+      return Math.floor(Math.random() * (canvasSize / box)) * box;
+    }
+
+    function setDirection(dir) {
+      if (dir === "LEFT" && direction !== "RIGHT") direction = "LEFT";
+      else if (dir === "RIGHT" && direction !== "LEFT") direction = "RIGHT";
+      else if (dir === "UP" && direction !== "DOWN") direction = "UP";
+      else if (dir === "DOWN" && direction !== "UP") direction = "DOWN";
+    }
+
+    function draw() {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "#00FF00" : "#00AA00";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+      }
+
+      ctx.fillStyle = "#FF0000";
+      ctx.fillRect(food.x, food.y, box, box);
+
+      let headX = snake[0].x;
+      let headY = snake[0].y;
+
+      if (direction === "LEFT") headX -= box;
+      if (direction === "RIGHT") headX += box;
+      if (direction === "UP") headY -= box;
+      if (direction === "DOWN") headY += box;
+
+      // Infinite loop (wrap)
+      headX = (headX + canvasSize) % canvasSize;
+      headY = (headY + canvasSize) % canvasSize;
+
+      // Game Over if hits itself
+      for (let i = 1; i < snake.length; i++) {
+        if (headX === snake[i].x && headY === snake[i].y) {
+          clearInterval(game);
+          alert("💀 Game Over! Score: " + score);
+          location.reload();
+        }
+      }
+
+      let newHead = { x: headX, y: headY };
+
+      if (headX === food.x && headY === food.y) {
+        score++;
+        food = { x: randomCoord(), y: randomCoord() };
+        document.getElementById("score").textContent = score;
+        if (score > highscore) {
+          highscore = score;
+          localStorage.setItem("snakeHighscore", highscore);
+          document.getElementById("highscore").textContent = highscore;
+        }
+      } else {
+        snake.pop();
+      }
+
+      snake.unshift(newHead);
+    }
+
+    let game = setInterval(draw, 200 - speed * 15);
+
+    function changeSpeed(delta) {
+      speed = Math.min(10, Math.max(1, speed + delta));
+      clearInterval(game);
+      game = setInterval(draw, 200 - speed * 15);
+      document.getElementById("speedLevel").textContent = speed;
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") setDirection("LEFT");
+      else if (e.key === "ArrowRight") setDirection("RIGHT");
+      else if (e.key === "ArrowUp") setDirection("UP");
+      else if (e.key === "ArrowDown") setDirection("DOWN");
+    });
+  </script>
+</body>
+</html>
